@@ -733,16 +733,19 @@ function scrollToTools(){ showView('home'); }
 /* ============================================================
    CREDITS BANNER (home view, when 0 credits)
    ============================================================ */
+let bannerDismissed = false;
 function renderCreditsBanner(){
   const el = document.getElementById('creditsBanner');
   if(!userDoc) { el.innerHTML=''; return; }
-  if(userDoc.credits > 0){ el.innerHTML=''; return; }
+  if(userDoc.credits > 0 || bannerDismissed){ el.innerHTML=''; return; }
   el.innerHTML = `
-    <div class="credits-zero-banner">
+    <div class="credits-zero-banner" style="position:relative;padding-right:34px">
       ${ICONS.alert}
       <p><b>You're out of credits.</b> Buy a plan to generate video, photo or animation. Browsing tools and projects is always free.</p>
+      <button onclick="bannerDismissed=true; renderCreditsBanner();" style="position:absolute;top:8px;right:8px;background:none;border:none;color:var(--muted);cursor:pointer;padding:4px;display:flex">${ICONS.close}</button>
     </div>`;
 }
+  
 
 /* ============================================================
    DOWNLOAD APP MODAL
@@ -1078,6 +1081,7 @@ async function runGeneration(tool, cost){
 }
 
 function openInsufficientCreditsModal(){
+  bannerDismissed = false;
   openModal(`
     <div class="modal-icon-badge" style="background:rgba(255,84,112,.12);color:var(--danger)">${ICONS.coin}</div>
     <h3 style="margin:0 0 6px">Not enough credits</h3>
