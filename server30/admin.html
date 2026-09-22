@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Motion Ai — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+:root{
+  --bg:#000;--panel:#0a0a0c;--panel-2:#111114;--line:rgba(255,255,255,0.09);--line-soft:rgba(255,255,255,0.05);
+  --text:#f5f5f7;--muted:#8b8b92;--muted-2:#5c5c63;
+  --violet:#7c5cff;--cyan:#22d3ee;--grad:linear-gradient(120deg,var(--violet),var(--cyan));
+  --danger:#ff5470;--ok:#2dd4a7;--ease:cubic-bezier(.4,0,.2,1);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);min-height:100%}
+body{font-family:'Inter',system-ui,Arial,sans-serif}
+h1,h2,h3{font-family:'Space Grotesk',Inter,sans-serif}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:#232326;border-radius:8px}
+
+.shell{max-width:1100px;margin:0 auto;padding:0 20px 60px}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 0;border-bottom:1px solid var(--line-soft);margin-bottom:22px;position:sticky;top:0;background:rgba(0,0,0,.85);backdrop-filter:blur(10px);z-index:20}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-mark{width:28px;height:28px;border-radius:8px;background:var(--grad);display:flex;align-items:center;justify-content:center}
+.brand-mark svg{width:16px;height:16px;color:#050505}
+.brand-name{font-weight:700;font-size:17px}
+.brand-tag{font-size:11px;color:var(--muted);background:var(--panel-2);border:1px solid var(--line);padding:2px 8px;border-radius:999px;margin-left:4px}
+.admin-email{font-size:13px;color:var(--muted)}
+.btn{border:none;border-radius:10px;padding:10px 16px;font-weight:600;font-size:13.5px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:filter .15s,transform .15s}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--grad);color:#050505}
+.btn-outline{background:transparent;border:1px solid var(--line);color:var(--text)}
+.btn-outline:hover{background:var(--panel-2)}
+.btn-danger{background:rgba(255,84,112,.12);color:var(--danger);border:1px solid rgba(255,84,112,.3)}
+.btn-sm{padding:7px 11px;font-size:12.5px}
+.btn svg{width:15px;height:15px}
+
+/* login gate */
+.gate{max-width:380px;margin:14vh auto;padding:26px;background:var(--panel-2);border:1px solid var(--line);border-radius:18px}
+.gate h2{margin:0 0 4px}
+.gate p{color:var(--muted);font-size:13px;margin:0 0 18px}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:6px;font-weight:500}
+.input{width:100%;background:#08080a;border:1px solid var(--line);color:var(--text);padding:11px 12px;border-radius:10px;font-size:14px;outline:none}
+.input:focus{border-color:var(--violet)}
+
+/* tabs */
+.tabs{display:flex;gap:6px;margin-bottom:18px;border-bottom:1px solid var(--line-soft)}
+.tab{background:none;border:none;color:var(--muted);padding:10px 4px;margin-right:18px;font-size:14px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent}
+.tab.active{color:#fff;border-color:var(--cyan)}
+.tab .count{background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:1px 7px;font-size:11px;margin-left:6px}
+
+.toolbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.search-wrap{position:relative;flex:1;min-width:220px}
+.search-wrap svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--muted)}
+.search-wrap input{padding-left:34px}
+
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:20px}
+.stat-card{background:var(--panel-2);border:1px solid var(--line);border-radius:14px;padding:14px}
+.stat-card .num{font-size:22px;font-weight:700;font-family:'Space Grotesk',sans-serif}
+.stat-card .lbl{font-size:12px;color:var(--muted);margin-top:3px}
+
+table{width:100%;border-collapse:collapse}
+.table-wrap{background:var(--panel-2);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+th{text-align:left;font-size:11.5px;text-transform:none;color:var(--muted);padding:12px 14px;border-bottom:1px solid var(--line-soft);font-weight:600}
+td{padding:12px 14px;border-bottom:1px solid var(--line-soft);font-size:13.5px;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+.user-cell{display:flex;align-items:center;gap:10px}
+.mini-avatar{width:30px;height:30px;border-radius:50%;background:#151518;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted);flex-shrink:0}
+.u-name{font-weight:600;font-size:13px}
+.u-email{font-size:11.5px;color:var(--muted)}
+.credit-tag{display:inline-flex;align-items:center;gap:5px;color:var(--cyan);font-weight:700;font-size:13px}
+.credit-tag svg{width:13px;height:13px}
+.plan-chip{font-size:11px;padding:3px 9px;border-radius:999px;background:var(--panel);border:1px solid var(--line);color:var(--muted)}
+.plan-chip.active{color:#050505;background:var(--grad);border:none;font-weight:700}
+.status-chip{font-size:11px;padding:3px 9px;border-radius:999px;font-weight:600}
+.status-chip.pending{background:rgba(255,193,7,.12);color:#ffc107}
+.status-chip.resolved{background:rgba(45,212,167,.12);color:var(--ok)}
+.empty-row td{text-align:center;color:var(--muted);padding:40px 14px}
+.copy-cell{display:flex;align-items:center;gap:8px}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;background:#08080a;border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:12.5px}
+
+/* modal */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s var(--ease)}
+.modal-backdrop.show{opacity:1;pointer-events:auto}
+.modal-card{width:92%;max-width:420px;background:linear-gradient(180deg,#111114,#08080a);border:1px solid var(--line);border-radius:18px;padding:22px;transform:translateY(10px) scale(.97);transition:transform .25s var(--ease);max-height:86vh;overflow-y:auto}
+.modal-backdrop.show .modal-card{transform:none}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.modal-head h3{margin:0;font-size:16.5px}
+.modal-close{background:var(--panel-2);border:none;color:var(--muted);width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.modal-close svg{width:14px;height:14px}
+.modal-actions{display:flex;gap:10px;margin-top:16px;justify-content:flex-end}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:#151518;border:1px solid var(--line);color:#fff;padding:12px 18px;border-radius:12px;font-size:13.5px;font-weight:500;z-index:400;opacity:0;pointer-events:none;transition:.28s var(--ease);display:flex;align-items:center;gap:9px}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast svg{width:16px;height:16px}
+.toast.ok svg{color:var(--ok)}
+.toast.err svg{color:var(--danger)}
+.spinner{width:16px;height:16px;border-radius:50%;border:2.5px solid rgba(0,0,0,.25);border-top-color:#050505;animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hidden{display:none !important}
+.view{display:none}
+.view.active{display:block;animation:fadeIn .25s var(--ease)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     CONFIG — reuse the same Firebase project as index.html.
+     Add every Gmail allowed to access this admin panel below.
+     ============================================================ -->
+<script>
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyDaStlA5DaRgMvId1pvTrH_VZZC_g-MPNs",
+    authDomain: "motionai-7dfa8.firebaseapp.com",
+    projectId: "motionai-7dfa8",
+    storageBucket: "motionai-7dfa8.firebasestorage.app",
+    messagingSenderId: "698088576014",
+    appId: "1:698088576014:web:20fcf83d2625655b2f585f",
+    measurementId: "G-6J4PLJF8KN"
+  };
+  const ADMIN_EMAILS = [
+    "admin@motionai.app"   // <-- replace with your real admin Gmail(s), comma-separate more if needed
+  ];
+</script>
+
+<div id="gateWrap">
+  <div class="gate" id="gate">
+    <h2>Admin sign in</h2>
+    <p>Sign in with an authorized admin account.</p>
+    <div class="field"><label>Email</label><input class="input" id="g_email" type="email" placeholder="admin@motionai.app"></div>
+    <div class="field"><label>Password</label><input class="input" id="g_pass" type="password" placeholder="Password"></div>
+    <button class="btn btn-primary" id="g_submit" style="width:100%;justify-content:center">Sign in</button>
+  </div>
+</div>
+
+<div id="adminWrap" class="hidden">
+  <div class="shell">
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-mark"></div>
+        <div class="brand-name">Motion Ai</div>
+        <div class="brand-tag">Admin</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="admin-email" id="adminEmailLabel"></div>
+        <button class="btn btn-outline btn-sm" id="signOutBtn">Sign out</button>
+      </div>
+    </div>
+
+    <div class="stat-row" id="statRow"></div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="users" onclick="switchTab('users')">Users <span class="count" id="usersCount">0</span></button>
+      <button class="tab" data-tab="resets" onclick="switchTab('resets')">Password resets <span class="count" id="resetsCount">0</span></button>
+    </div>
+
+    <!-- USERS TAB -->
+    <div class="view active" id="tab-users">
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3" stroke-linecap="round"/></svg>
+          <input class="input" id="userSearch" placeholder="Search by name or email">
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>User</th><th>Credits</th><th>Plan</th><th>Joined</th><th></th></tr></thead>
+          <tbody id="usersBody"><tr class="empty-row"><td colspan="5">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- RESETS TAB -->
+    <div class="view" id="tab-resets">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Email</th><th>Requested password</th><th>Requested</th><th>Status</th><th></th></tr></thead>
+          <tbody id="resetsBody"><tr class="empty-row"><td colspan="5">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop"><div class="modal-card" id="modalCard"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------------- ICONS ---------------- */
+const ICONS = {
+  close: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>`,
+  coin: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 15.5c0 1 1 1.8 2.5 1.8s2.5-.8 2.5-1.8c0-2.4-5-1.4-5-3.8 0-1 1-1.8 2.5-1.8s2.5.8 2.5 1.8" stroke-linecap="round"/></svg>`,
+  check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`,
+  alert: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 2.5 17.5a1.6 1.6 0 0 0 1.4 2.4h16.2a1.6 1.6 0 0 0 1.4-2.4L13.7 3.9a1.6 1.6 0 0 0-2.8 0Z"/></svg>`,
+  copy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>`,
+  edit: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`
+};
+
+/* ---------------- toast ---------------- */
+const toastEl = document.getElementById('toast');
+function toast(msg,type='ok'){
+  toastEl.className='toast show '+type;
+  toastEl.innerHTML=(type==='err'?ICONS.alert:ICONS.check)+`<span>${msg}</span>`;
+  clearTimeout(toastEl._t); toastEl._t=setTimeout(()=>toastEl.classList.remove('show'),2600);
+}
+/* ---------------- modal ---------------- */
+const modalBackdrop=document.getElementById('modalBackdrop');
+const modalCard=document.getElementById('modalCard');
+function openModal(html){ modalCard.innerHTML=html; modalBackdrop.classList.add('show'); }
+function closeModal(){ modalBackdrop.classList.remove('show'); }
+modalBackdrop.addEventListener('click',e=>{ if(e.target===modalBackdrop) closeModal(); });
+
+/* ---------------- firebase ---------------- */
+firebase.initializeApp(FIREBASE_CONFIG);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+document.getElementById('g_submit').addEventListener('click', async ()=>{
+  const email = document.getElementById('g_email').value.trim();
+  const pass = document.getElementById('g_pass').value;
+  if(!email||!pass){ toast('Enter email and password','err'); return; }
+  const btn = document.getElementById('g_submit');
+  btn.innerHTML = `<span class="spinner"></span>`;
+  try{
+    await auth.signInWithEmailAndPassword(email, pass);
+  }catch(err){
+    toast(err.message,'err');
+    btn.textContent = 'Sign in';
+  }
+});
+document.getElementById('signOutBtn').addEventListener('click', ()=> auth.signOut());
+
+auth.onAuthStateChanged(user=>{
+  if(!user || !ADMIN_EMAILS.map(e=>e.toLowerCase()).includes((user.email||'').toLowerCase())){
+    if(user) { toast('This account is not an admin','err'); auth.signOut(); }
+    document.getElementById('gateWrap').classList.remove('hidden');
+    document.getElementById('adminWrap').classList.add('hidden');
+    document.getElementById('g_submit').textContent = 'Sign in';
+    return;
+  }
+  document.getElementById('gateWrap').classList.add('hidden');
+  document.getElementById('adminWrap').classList.remove('hidden');
+  document.getElementById('adminEmailLabel').textContent = user.email;
+  loadUsers();
+  loadResets();
+});
+
+/* ---------------- tabs ---------------- */
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+/* ---------------- users ---------------- */
+let allUsers = [];
+function initials(str){ if(!str) return 'U'; return str.trim().split(/\s+/).map(s=>s[0]).slice(0,2).join('').toUpperCase(); }
+function fmtDate(ts){ if(!ts || !ts.toDate) return '—'; return ts.toDate().toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); }
+
+function loadUsers(){
+  db.collection('users').orderBy('createdAt','desc').onSnapshot(snap=>{
+    allUsers = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    document.getElementById('usersCount').textContent = allUsers.length;
+    renderUsers(allUsers);
+    renderStats();
+  }, err=>{ console.warn(err); });
+}
+function renderUsers(list){
+  const body = document.getElementById('usersBody');
+  if(!list.length){ body.innerHTML = `<tr class="empty-row"><td colspan="5">No users yet</td></tr>`; return; }
+  body.innerHTML = list.map(u=>`
+    <tr>
+      <td>
+        <div class="user-cell">
+          <div class="mini-avatar">${initials(u.username||u.email)}</div>
+          <div>
+            <div class="u-name">${escapeHtml(u.username||'—')}</div>
+            <div class="u-email">${escapeHtml(u.email||'—')}</div>
+          </div>
+        </div>
+      </td>
+      <td><span class="credit-tag">${ICONS.coin}${(u.credits||0).toLocaleString()}</span></td>
+      <td><span class="plan-chip ${u.plan?'active':''}">${u.plan ? u.plan[0].toUpperCase()+u.plan.slice(1) : 'None'}</span></td>
+      <td>${fmtDate(u.createdAt)}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="openEditUser('${u.id}')">${ICONS.edit}<span>Edit</span></button></td>
+    </tr>
+  `).join('');
+}
+document.getElementById('userSearch').addEventListener('input', e=>{
+  const q = e.target.value.toLowerCase();
+  renderUsers(allUsers.filter(u => (u.username||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q)));
+});
+
+function openEditUser(id){
+  const u = allUsers.find(x=>x.id===id); if(!u) return;
+  openModal(`
+    <div class="modal-head"><h3>Edit user</h3><button class="modal-close" onclick="closeModal()">${ICONS.close}</button></div>
+    <div class="field"><label>Username</label><input class="input" id="eu_name" value="${escapeAttr(u.username||'')}"></div>
+    <div class="field"><label>Email</label><input class="input" id="eu_email" value="${escapeAttr(u.email||'')}"></div>
+    <div class="field"><label>Credits</label><input class="input" id="eu_credits" type="number" value="${u.credits||0}"></div>
+    <div class="field"><label>Plan</label>
+      <select class="input" id="eu_plan">
+        <option value="" ${!u.plan?'selected':''}>None</option>
+        <option value="weekly" ${u.plan==='weekly'?'selected':''}>Weekly</option>
+        <option value="monthly" ${u.plan==='monthly'?'selected':''}>Monthly</option>
+        <option value="yearly" ${u.plan==='yearly'?'selected':''}>Yearly</option>
+        <option value="unlimited" ${u.plan==='unlimited'?'selected':''}>Unlimited</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="eu_save">Save changes</button>
+    </div>
+  `);
+  document.getElementById('eu_save').addEventListener('click', async ()=>{
+    const btn = document.getElementById('eu_save');
+    btn.innerHTML = `<span class="spinner"></span>`;
+    try{
+      await db.collection('users').doc(id).update({
+        username: document.getElementById('eu_name').value.trim(),
+        email: document.getElementById('eu_email').value.trim(),
+        credits: Number(document.getElementById('eu_credits').value)||0,
+        plan: document.getElementById('eu_plan').value || null
+      });
+      closeModal(); toast('User updated');
+    }catch(err){ toast(err.message,'err'); btn.textContent='Save changes'; }
+  });
+}
+
+/* ---------------- password resets ---------------- */
+let allResets = [];
+function loadResets(){
+  db.collection('passwordResets').orderBy('requestedAt','desc').onSnapshot(snap=>{
+    allResets = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    document.getElementById('resetsCount').textContent = allResets.filter(r=>r.status==='pending').length;
+    renderResets();
+  }, err=>{ console.warn(err); });
+}
+function renderResets(){
+  const body = document.getElementById('resetsBody');
+  if(!allResets.length){ body.innerHTML = `<tr class="empty-row"><td colspan="5">No reset requests</td></tr>`; return; }
+  body.innerHTML = allResets.map(r=>`
+    <tr>
+      <td>${escapeHtml(r.email||'—')}</td>
+      <td>
+        <div class="copy-cell">
+          <span class="mono">${escapeHtml(r.requestedPassword||'')}</span>
+          <button class="btn btn-outline btn-sm" onclick="copyText('${escapeAttr(r.requestedPassword||'')}')">${ICONS.copy}</button>
+        </div>
+      </td>
+      <td>${fmtDate(r.requestedAt)}</td>
+      <td><span class="status-chip ${r.status==='resolved'?'resolved':'pending'}">${r.status==='resolved'?'Resolved':'Pending'}</span></td>
+      <td>${r.status!=='resolved' ? `<button class="btn btn-outline btn-sm" onclick="markResolved('${r.id}')">Mark sent</button>` : ''}</td>
+    </tr>
+  `).join('');
+}
+async function markResolved(id){
+  await db.collection('passwordResets').doc(id).update({status:'resolved'});
+  toast('Marked as sent');
+}
+function copyText(text){
+  navigator.clipboard.writeText(text).then(()=> toast('Copied to clipboard'));
+}
+
+/* ---------------- stats ---------------- */
+function renderStats(){
+  const total = allUsers.length;
+  const paid = allUsers.filter(u=>u.plan).length;
+  const totalCredits = allUsers.reduce((s,u)=> s + (u.credits||0), 0);
+  document.getElementById('statRow').innerHTML = `
+    <div class="stat-card"><div class="num">${total}</div><div class="lbl">Total users</div></div>
+    <div class="stat-card"><div class="num">${paid}</div><div class="lbl">Subscribed users</div></div>
+    <div class="stat-card"><div class="num">${totalCredits.toLocaleString()}</div><div class="lbl">Credits in circulation</div></div>
+  `;
+}
+
+/* ---------------- helpers ---------------- */
+function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escapeAttr(s){ return String(s).replace(/"/g,'&quot;'); }
+</script>
+</body>
+</html>
